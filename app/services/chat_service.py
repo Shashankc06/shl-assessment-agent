@@ -139,16 +139,36 @@ def generate_reply(messages):
 
     recommendations = []
 
-    for item in retrieved_results:
+for item in retrieved_results:
 
-        recommendations.append({
-            "name": item["name"],
-            "url": item["url"],
-            "test_type": "Assessment"
-        })
+    recommendations.append({
+        "name": item.get("name", "Unknown Assessment"),
+        "url": item.get("url", ""),
+        "test_type": item.get("test_type", "Assessment")
+    })
+
+# Limit recommendations between 1 and 10
+recommendations = recommendations[:10]
+
+# Decide if clarification is needed
+needs_clarification = (
+    len(recommendations) == 0
+)
+
+if needs_clarification:
 
     return {
-        "reply": response.text,
-        "recommendations": recommendations,
+        "reply": (
+            "Could you share more details about "
+            "the role, seniority level, and "
+            "required skills?"
+        ),
+        "recommendations": [],
         "end_of_conversation": False
     }
+
+return {
+    "reply": response.text.strip(),
+    "recommendations": recommendations,
+    "end_of_conversation": True
+}
