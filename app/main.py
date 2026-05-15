@@ -10,8 +10,7 @@ app = FastAPI(
     version="1.0.0",
     swagger_ui_parameters={
         "displayRequestDuration": True
-    },
-    openapi_url=None
+    }
 )
 
 class Message(BaseModel):
