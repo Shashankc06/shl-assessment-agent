@@ -53,7 +53,7 @@ def generate_reply(messages):
 
     latest_message = messages[-1]["content"]
 
-    # Refuse off-topic
+    # Refuse off-topic questions
     if detect_off_topic(latest_message):
 
         return {
@@ -66,7 +66,7 @@ def generate_reply(messages):
             "end_of_conversation": False
         }
 
-    # Build full conversation context
+    # Build conversation context
     conversation_text = ""
 
     for msg in messages:
@@ -76,10 +76,10 @@ def generate_reply(messages):
             f"{msg['content']}\n"
         )
 
-    # Retrieve based on latest query
+    # Retrieve assessments
     retrieved_results = search_assessments(
         latest_message,
-        top_k=5
+        top_k=10
     )
 
     retrieved_text = ""
@@ -87,12 +87,16 @@ def generate_reply(messages):
     for item in retrieved_results:
 
         retrieved_text += f"""
-        Assessment Name: {item['name']}
-        URL: {item['url']}
-        Description: {item['description']}
+        Assessment Name: {item.get('name', 'Unknown')}
+        URL: {item.get('url', '')}
+        Description: {item.get('description', '')}
+        Remote Testing Support: {item.get('remote_support', 'Unknown')}
+        Adaptive/IRT Support: {item.get('adaptive_support', 'Unknown')}
+        Duration: {item.get('duration', 'Unknown')}
+        Test Type: {item.get('test_type', 'Assessment')}
         """
 
-    # Comparison handling
+    # Handle comparison requests
     if detect_comparison(latest_message):
 
         comparison_prompt = f"""
@@ -106,8 +110,12 @@ def generate_reply(messages):
         Retrieved assessments:
         {retrieved_text}
 
-        Compare the assessments using ONLY
-        retrieved information.
+        Instructions:
+        - Compare only using retrieved information
+        - Explain key differences clearly
+        - Mention duration, adaptive support,
+          remote testing support if available
+        - Keep response concise and professional
         """
 
         response = model.generate_content(
@@ -126,49 +134,56 @@ def generate_reply(messages):
         {retrieved_text}
 
         Instructions:
-        - Understand the full conversation
-        - Handle refinements naturally
-        - Recommend suitable assessments
+        - Understand the user's hiring needs
+        - Recommend the most suitable SHL assessments
+        - Mention why each assessment fits
         - Ask clarification questions if needed
-        - Stay grounded in retrieved data
+        - Stay grounded only in retrieved data
+        - Keep response professional and concise
         """
 
         response = model.generate_content(
             recommendation_prompt
         )
 
+    # Build recommendation list
     recommendations = []
 
-for item in retrieved_results:
+    for item in retrieved_results:
 
-    recommendations.append({
-        "name": item.get("name", "Unknown Assessment"),
-        "url": item.get("url", ""),
-        "test_type": item.get("test_type", "Assessment")
-    })
+        recommendations.append({
+            "name": item.get("name", "Unknown Assessment"),
+            "url": item.get("url", ""),
+            "test_type": item.get("test_type", "Assessment"),
+            "duration": item.get("duration", "Unknown"),
+            "remote_support": item.get(
+                "remote_support",
+                "Unknown"
+            ),
+            "adaptive_support": item.get(
+                "adaptive_support",
+                "Unknown"
+            )
+        })
 
-# Limit recommendations between 1 and 10
-recommendations = recommendations[:10]
+    # Limit recommendations between 1 and 10
+    recommendations = recommendations[:10]
 
-# Decide if clarification is needed
-needs_clarification = (
-    len(recommendations) == 0
-)
+    # Clarification fallback
+    if len(recommendations) == 0:
 
-if needs_clarification:
+        return {
+            "reply": (
+                "I could not find a strong assessment "
+                "match. Could you specify the role, "
+                "skills, experience level, or job type?"
+            ),
+            "recommendations": [],
+            "end_of_conversation": False
+        }
 
     return {
-        "reply": (
-            "Could you share more details about "
-            "the role, seniority level, and "
-            "required skills?"
-        ),
-        "recommendations": [],
+        "reply": response.text,
+        "recommendations": recommendations,
         "end_of_conversation": False
     }
-
-return {
-    "reply": response.text.strip(),
-    "recommendations": recommendations,
-    "end_of_conversation": True
-}
