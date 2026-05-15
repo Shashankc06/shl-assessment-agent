@@ -6,14 +6,13 @@ from app.services.chat_service import generate_reply
 
 
 app = FastAPI(
-    title="SHL Assessment Recommendation Chatbot",
+    title="Talent Assessment Assistant",
     version="1.0.0",
     swagger_ui_parameters={
         "displayRequestDuration": True
     },
     openapi_url=None
 )
-
 
 class Message(BaseModel):
     role: str
