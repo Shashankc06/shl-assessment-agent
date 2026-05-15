@@ -4,9 +4,14 @@ from typing import List
 
 from app.services.chat_service import generate_reply
 
+
 app = FastAPI(
     title="SHL Assessment Recommendation Chatbot",
-    version="1.0.0"
+    version="1.0.0",
+    swagger_ui_parameters={
+        "displayRequestDuration": True
+    },
+    openapi_url=None
 )
 
 
@@ -21,7 +26,6 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def home():
-
     return {
         "message": "SHL Assessment Chatbot Running"
     }
@@ -29,7 +33,6 @@ def home():
 
 @app.get("/health")
 def health():
-
     return {
         "status": "ok"
     }
@@ -38,15 +41,8 @@ def health():
 @app.post("/chat")
 def chat(request: ChatRequest):
 
-    messages = []
+    result = generate_reply(
+        [msg.dict() for msg in request.messages]
+    )
 
-    for msg in request.messages:
-
-        messages.append({
-            "role": msg.role,
-            "content": msg.content
-        })
-
-    response = generate_reply(messages)
-
-    return response
+    return result
