@@ -2,7 +2,12 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from typing import List
 
-app = FastAPI()
+from app.services.chat_service import generate_reply
+
+app = FastAPI(
+    title="SHL Assessment Recommendation Chatbot",
+    version="1.0.0"
+)
 
 
 class Message(BaseModel):
@@ -16,21 +21,32 @@ class ChatRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {"message": "SHL Assessment Chatbot Running"}
+
+    return {
+        "message": "SHL Assessment Chatbot Running"
+    }
 
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+
+    return {
+        "status": "ok"
+    }
 
 
 @app.post("/chat")
 def chat(request: ChatRequest):
 
-    user_message = request.messages[-1].content
+    messages = []
 
-    return {
-        "reply": f"You said: {user_message}",
-        "recommendations": [],
-        "end_of_conversation": False
-    }
+    for msg in request.messages:
+
+        messages.append({
+            "role": msg.role,
+            "content": msg.content
+        })
+
+    response = generate_reply(messages)
+
+    return response
